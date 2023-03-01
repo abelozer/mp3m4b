@@ -4,16 +4,63 @@
 Concatenates audio files and add chapter markers.
 """
 
-import os
+import os, sys
+import argparse
 import subprocess
 from pathlib import Path
 from tqdm import tqdm
 import json
 
-folder_path = Path('./')
-book_title = ""
-output_file = 'out.m4a'
+
+parser = argparse.ArgumentParser(description='Concatenates audio files and add chapter markers.')
+
+# Add arguments to the parser
+parser.add_argument('-p', '--path', type=str, help='Path to folder with mp3 files')
+parser.add_argument('-b', '--bitrate', type=str, help='Bitrate of audiobook  (96k, 128k etc)')
+parser.add_argument('-t', '--title', type=str, help='Audiobook title')
+parser.add_argument('-a', '--artwork', type=str, help='Audiobook cover image')
+parser.add_argument('-o', '--output', type=str, help='Output file name without extension')
+
+# Parse the arguments
+args = parser.parse_args()
+
+if args.path:
+    folder_path = Path(args.path)
+    print(f"Path: {folder_path}")
+else:
+    folder_path = Path('./')
+    print("Path: trying script folder")
+if args.bitrate:
+    bitrate = args.bitrate
+    print(f'Bitrate: {args.bitrate}')
+else:
+    bitrate = ""
+    print(f'Default bitrate: we\'ll try to get it from mp3 files')
+if args.title:
+    book_title = args.title
+    print(f'Title: {args.title}')
+else:
+    book_title = ""
+    print(f'Default title: we\'ll try to get it from mp3 tag Album')
+if args.artwork:
+    artwork_filename = args.artwork
+    print(f'Artwork: {args.artwork}')
+else:
+    artwork_filename = "cover.jpg"
+    print(f'Default Artwork: {artwork_filename}')
+if args.output:
+    output_file_name = args.output
+    print(f'Output file name: {args.output}.m4b')
+else:
+    output_file_name = "audiobook"
+    print(f'Default output file name: {output_file_name}.m4b')
+
+os.chdir(str(folder_path))
 input_audio_files = sorted(str(file) for file in folder_path.glob('*.mp3'))
+
+if len(input_audio_files) == 0:
+    print(f"{os.getcwd()} does not contain mp3 files")
+    sys.exit()
 genre = "Audiobook"
 comment = ""
 chapter_title_tag = "title"
@@ -62,13 +109,17 @@ for audio_file in tqdm(input_audio_files, desc='Processing mp3 files'):
     ffprobtime += get_length_using_ffprobe(Path(audio_file))
     starttimes.append([audio_file, chapter_title, str(int(ffprobtime))])
 
-# print_metadata(starttimes)
-
 output = subprocess.run(["ffprobe", input_audio_files[0], "-v", "quiet", "-print_format", "json", "-show_format"], stdout=subprocess.PIPE, universal_newlines=True)
 textMetadata = output.stdout
 data = json.loads(textMetadata)
+if bitrate == "":
+    bitrate = data["format"]["bit_rate"][:-3] + "k"
 tags = data["format"]["tags"]
-tags['title']=book_title
+if book_title == "":
+    if 'album' in tags:
+        tags['title']=tags['album']
+    else:
+        tags['title'] = "Audiobook"
 tags['genre']=genre
 
 # https://ffmpeg.org/ffmpeg-formats.html#Metadata-1
@@ -101,7 +152,11 @@ bar_separated_filenames = ''
 for i in input_audio_files:
     bar_separated_filenames += i+'|'
 
-os.system('ffmpeg -i "concat:' + bar_separated_filenames[:-1]  + '" -i ' + ffmetadata_file + ' -map_metadata 1 -vn -b:a 96k ' + output_file)
-os.system('AtomicParsley ' + output_file + ' --artwork cover.jpg -o \'' + book_title + '.m4b\'')
-os.remove(output_file)
+temp_file = output_file_name + '.m4a'
+os.system('ffmpeg -i "concat:' + bar_separated_filenames[:-1]  + '" -i ' + ffmetadata_file + ' -map_metadata 1 -vn -b:a ' + bitrate + ' \'' + temp_file + '\'')
+if os.path.isfile(artwork_filename):
+    os.system('AtomicParsley ' + temp_file + ' --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
+    os.remove(temp_file)
+else:
+    print(f"{artwork_filename} does not exist.")
 print('Done!')
