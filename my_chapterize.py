@@ -9,10 +9,11 @@ import argparse
 import subprocess
 from pathlib import Path
 from tqdm import tqdm
+from mutagen.mp3 import MP3
 import json
 
 
-parser = argparse.ArgumentParser(description='Concatenates audio files and add chapter markers.')
+parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
 
 # Add arguments to the parser
 parser.add_argument('-p', '--path', type=str, help='Path to folder with mp3 files')
@@ -29,7 +30,7 @@ if args.path:
     print(f"Path: {folder_path}")
 else:
     folder_path = Path('./')
-    print("Path: trying script folder")
+    print("Path: trying current folder")
 if args.bitrate:
     bitrate = args.bitrate
     print(f'Bitrate: {args.bitrate}')
@@ -66,6 +67,11 @@ comment = ""
 chapter_title_tag = "title"
 ffmetadata_file = "FFMETADATA.txt"
 
+def get_length_using_mutagen(file_path: Path) -> float:
+    audio = MP3(file_path)
+    mutagen_length = float(audio.info.length) * 1e9 * 1.00005
+    return mutagen_length
+
 def get_length_using_ffprobe(file_path: Path) -> float:
     """
     Get the length of an audio file in nanoseconds using ffprobe.
@@ -77,8 +83,8 @@ def get_length_using_ffprobe(file_path: Path) -> float:
         float: The length of the audio file in nanoseconds.
     """
     result = subprocess.check_output(["ffprobe", file_path, "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0"])
-    ffprobe_length = float(result) * 1e9
-    #1.00005
+    ffprobe_length = float(result) * 1e9 * 1.00029
+    #1.0001
     return ffprobe_length
 
 def get_chapter_title(file_path: Path, tag: str) -> str:
@@ -106,7 +112,8 @@ starttimes=[]
 ffprobtime = 0.0 #cummulative start time (nanoseconds)
 for audio_file in tqdm(input_audio_files, desc='Processing mp3 files'):
     chapter_title = get_chapter_title(Path(audio_file), chapter_title_tag)
-    ffprobtime += get_length_using_ffprobe(Path(audio_file))
+    # ffprobtime += get_length_using_ffprobe(Path(audio_file))
+    ffprobtime += get_length_using_mutagen(Path(audio_file))
     starttimes.append([audio_file, chapter_title, str(int(ffprobtime))])
 
 output = subprocess.run(["ffprobe", input_audio_files[0], "-v", "quiet", "-print_format", "json", "-show_format"], stdout=subprocess.PIPE, universal_newlines=True)
@@ -159,4 +166,5 @@ if os.path.isfile(artwork_filename):
     os.remove(temp_file)
 else:
     print(f"{artwork_filename} does not exist.")
+print('\a')
 print('Done!')
