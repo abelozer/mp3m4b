@@ -4,7 +4,8 @@
 Concatenates audio files and add chapter markers.
 """
 
-import os, sys
+import os
+import sys
 import argparse
 import subprocess
 from pathlib import Path
@@ -36,13 +37,13 @@ if args.bitrate:
     print(f'Bitrate: {args.bitrate}')
 else:
     bitrate = ""
-    print(f'Default bitrate: we\'ll try to get it from mp3 files')
+    print('Default bitrate: we\'ll try to get it from mp3 files')
 if args.title:
     book_title = args.title
     print(f'Title: {args.title}')
 else:
     book_title = ""
-    print(f'Default title: we\'ll try to get it from mp3 tag Album')
+    print('Default title: we\'ll try to get it from mp3 tag Album')
 if args.artwork:
     artwork_filename = args.artwork
     print(f'Artwork: {args.artwork}')
@@ -68,8 +69,17 @@ chapter_title_tag = "title"
 ffmetadata_file = "FFMETADATA.txt"
 
 def get_length_using_mutagen(file_path: Path) -> float:
+    """
+    Get the length of an audio file in nanoseconds using mutagen lib.
+
+    Args:
+        file_path (Path): The path to the audio file.
+
+    Returns:
+        float: The length of the audio file in nanoseconds.
+    """
     audio = MP3(file_path)
-    mutagen_length = float(audio.info.length) * 1e9 * 1.00005
+    mutagen_length = float(audio.info.length) * 1e9 * 1.0005
     return mutagen_length
 
 def get_length_using_ffprobe(file_path: Path) -> float:
@@ -83,7 +93,7 @@ def get_length_using_ffprobe(file_path: Path) -> float:
         float: The length of the audio file in nanoseconds.
     """
     result = subprocess.check_output(["ffprobe", file_path, "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0"])
-    ffprobe_length = float(result) * 1e9 * 1.00029
+    ffprobe_length = float(result) * 1e9 * 1.0005
     #1.0001
     return ffprobe_length
 
