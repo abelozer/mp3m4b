@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-Concatenates audio files and add chapter markers.
+Concatenates mp3 files into single m4b audiobook and adds chapter markers.
 """
 
 import os
@@ -12,8 +12,6 @@ import json
 from pathlib import Path
 from tqdm import tqdm
 from mutagen.mp3 import MP3
-
-
 
 parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
 
@@ -80,7 +78,7 @@ def get_length_using_mutagen(file_path: Path) -> float:
         float: The length of the audio file in nanoseconds.
     """
     audio = MP3(file_path)
-    mutagen_length = float(audio.info.length) * 1e9 * 1.0005
+    mutagen_length = float(audio.info.length) * 1e9 * 1.0002
     return mutagen_length
 
 def get_length_using_ffprobe(file_path: Path) -> float:
