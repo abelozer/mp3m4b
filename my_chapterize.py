@@ -8,10 +8,11 @@ import os
 import sys
 import argparse
 import subprocess
+import json
 from pathlib import Path
 from tqdm import tqdm
 from mutagen.mp3 import MP3
-import json
+
 
 
 parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
@@ -115,6 +116,9 @@ def get_chapter_title(file_path: Path, tag: str) -> str:
     return chapter_title
 
 def print_metadata(starttimes: list) -> None:
+    """
+    Helper function
+    """
     for item in starttimes:
         print(" - ".join(item))
 
