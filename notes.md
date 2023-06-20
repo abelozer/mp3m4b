@@ -180,3 +180,17 @@ for i in *.mp3;do ffmpeg -i "$i" -af "apad=pad_dur=1" -b:a 96k "$i".mp3;done
 ```
 
 TODO: think about making name in the loop above more meaningful.
+
+Sometimes the python code does not help and I have to do it all manually:
+
+1. Remane mp3 files (spaces to underscores)
+2. Add 1 sec delay at the end of all mp3 files
+3. Concatenate files and include chapters metadata
+4. Add cover
+
+```bash
+for i in *.mp3;do mv "$i" "${i// /_}";done
+for i in *.mp3;do ffmpeg -i "$i" -af "apad=pad_dur=1" -b:a 96k "$i".mp3;done
+ffmpeg -f concat -i files.txt -i FFMETADATA_NEW.txt -map_metadata 1 -vn -b:a 96k output.m4a
+AtomicParsley output.m4a --artwork ../cover.jpg
+```
