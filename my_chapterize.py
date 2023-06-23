@@ -120,6 +120,27 @@ def print_metadata(starttimes: list) -> None:
     for item in starttimes:
         print(" - ".join(item))
 
+def attach_artwork(temp_file: str, artwork_filename: str, output_file_name: str) -> None:
+    """
+    Attaches artwork to a new audiobook and renames M4A to M4B.
+    """
+
+    if os.path.isfile(artwork_filename):
+        os.system('AtomicParsley \"' + temp_file + '\" --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
+        os.remove(temp_file)
+    else:
+        print("Trying to extract artwork from source files...")
+        shell_command = "ffmpeg -i \'" + input_audio_files[0] + "\' -an -vcodec copy cover.jpg"
+        subprocess.call(shell_command, shell=True)
+        artwork_filename = "cover.jpg"
+        file_path = os.path.join(folder_path, artwork_filename)
+        file_exists = os.path.isfile(file_path)
+        if file_exists:
+            os.system('AtomicParsley \"' + temp_file + '\" --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
+        else:
+            print("Unable to attach artwork.")
+
+
 starttimes=[]
 ffprobtime = 0.0 #cummulative start time (nanoseconds)
 for audio_file in tqdm(input_audio_files, desc='Processing mp3 files'):
@@ -173,10 +194,8 @@ for i in input_audio_files:
 
 temp_file = output_file_name + '.m4a'
 os.system('ffmpeg -i "concat:' + bar_separated_filenames[:-1]  + '" -i ' + ffmetadata_file + ' -map_metadata 1 -vn -b:a ' + bitrate + ' \'' + temp_file + '\'')
-if os.path.isfile(artwork_filename):
-    os.system('AtomicParsley \"' + temp_file + '\" --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
-    os.remove(temp_file)
-else:
-    print(f"{artwork_filename} does not exist.")
+
+attach_artwork(temp_file, artwork_filename, output_file_name)
+
 print('\a')
 print('Done!')
