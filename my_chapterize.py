@@ -174,7 +174,7 @@ for i in input_audio_files:
 temp_file = output_file_name + '.m4a'
 os.system('ffmpeg -i "concat:' + bar_separated_filenames[:-1]  + '" -i ' + ffmetadata_file + ' -map_metadata 1 -vn -b:a ' + bitrate + ' \'' + temp_file + '\'')
 if os.path.isfile(artwork_filename):
-    os.system('AtomicParsley ' + temp_file + ' --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
+    os.system('AtomicParsley \"' + temp_file + '\" --artwork ' + artwork_filename + ' -o \'' + output_file_name + '.m4b\'')
     os.remove(temp_file)
 else:
     print(f"{artwork_filename} does not exist.")
