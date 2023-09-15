@@ -13,59 +13,6 @@ from pathlib import Path
 from tqdm import tqdm
 from mutagen.mp3 import MP3
 
-parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
-
-# Add arguments to the parser
-parser.add_argument('-p', '--path', type=str, help='Path to folder with mp3 files')
-parser.add_argument('-b', '--bitrate', type=str, help='Bitrate of audiobook  (96k, 128k etc)')
-parser.add_argument('-t', '--title', type=str, help='Audiobook title')
-parser.add_argument('-a', '--artwork', type=str, help='Audiobook cover image')
-parser.add_argument('-o', '--output', type=str, help='Output file name without extension')
-
-# Parse the arguments
-args = parser.parse_args()
-
-if args.path:
-    folder_path = Path(args.path)
-    print(f"Path: {folder_path}")
-else:
-    folder_path = Path('./')
-    print("Path: trying current folder")
-if args.bitrate:
-    bitrate = args.bitrate
-    print(f'Bitrate: {args.bitrate}')
-else:
-    bitrate = ""
-    print('Default bitrate: we\'ll try to get it from mp3 files')
-if args.title:
-    book_title = args.title
-    print(f'Title: {args.title}')
-else:
-    book_title = ""
-    print('Default title: we\'ll try to get it from mp3 tag Album')
-if args.artwork:
-    artwork_filename = args.artwork
-    print(f'Artwork: {args.artwork}')
-else:
-    artwork_filename = "cover.jpg"
-    print(f'Default Artwork: {artwork_filename}')
-if args.output:
-    output_file_name = args.output
-    print(f'Output file name: {args.output}.m4b')
-else:
-    output_file_name = "audiobook"
-    print(f'Default output file name: {output_file_name}.m4b')
-
-os.chdir(str(folder_path))
-input_audio_files = sorted(str(file) for file in folder_path.glob('*.mp3'))
-
-if len(input_audio_files) == 0:
-    print(f"{os.getcwd()} does not contain mp3 files")
-    sys.exit()
-genre = "Audiobook"
-comment = ""
-chapter_title_tag = "title"
-ffmetadata_file = "FFMETADATA.txt"
 
 def get_length_using_mutagen(file_path: Path) -> float:
     """
@@ -133,27 +80,115 @@ def print_metadata(starttimes: list) -> None:
     for item in starttimes:
         print(" - ".join(item))
 
-def check_artwork(artwork_filename: str) -> bool:
+def extract_artwork_from_mp3(artwork_filename: str) -> bool:
     """
-    Attaches artwork to a new audiobook and renames M4A to M4B.
+    Extracts artwork from source mp3 file.
+    Takes the first file in the list.
+    Returns True if successfull.
+    """
+    print(f'Trying to extract artwork from the source mp3 file...')
+    shell_command = f"ffmpeg -i '{input_audio_files[0]}' -an -vcodec copy {artwork_filename}"
+    os.system(shell_command)
+    file_path = os.path.join(folder_path, artwork_filename)
+    if os.path.exists(file_path):
+        return True
+    else:
+        print("Unable to extract artwork.")
+        return False
+
+def check_file(artwork_filename: str) -> bool:
+    """
+    Checks if the artwork file exists.
+    If it does not exist it tries to get artwork from source mp3 files.
+    Args:
+        artwork_filename(str): filename to look for
+    Returns:
+        Boolean
     """
     if os.path.exists(artwork_filename):
         return True
     else:
-        artwork_filename = "cover.jpg"
-        print("Trying to extract artwork from source files...")
-        shell_command = f"ffmpeg -i '{input_audio_files[0]}' -an -vcodec copy {artwork_filename}"
-        os.system(shell_command)
-        file_path = os.path.join(folder_path, artwork_filename)
-        if os.path.exists(file_path):
-            return True
-        else:
-            print("Unable to find artwork.")
-            return False
+        return False
 
 def attach_artwork(temp_file: str, artwork_filename: str, output_file_name: str) -> None:
+    """
+    Attaches artwork to the newly created audiobook file.
+    """
     os.system(f"AtomicParsley '{temp_file}' --artwork {artwork_filename} -o '{output_file_name}.m4b'")
     os.remove(temp_file)
+
+parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
+
+# Add arguments to the parser
+parser.add_argument('-p', '--path', type=str, help='Path to folder with mp3 files')
+parser.add_argument('-b', '--bitrate', type=str, help='Bitrate of audiobook  (96k, 128k etc)')
+parser.add_argument('-t', '--title', type=str, help='Audiobook title')
+parser.add_argument('-a', '--artwork', type=str, help='Audiobook cover image')
+parser.add_argument('-o', '--output', type=str, help='Output file name without extension')
+
+# Parse the arguments
+args = parser.parse_args()
+
+if args.path:
+    folder_path = Path(args.path)
+    print(f"Path: {folder_path}")
+else:
+    folder_path = Path('./')
+    print("Path: trying current folder")
+
+# Checking bitrate
+if args.bitrate:
+    bitrate = args.bitrate
+    print(f'Bitrate: {args.bitrate}')
+else:
+    bitrate = ""
+    print('Default bitrate: we\'ll try to get it from mp3 files')
+
+# Checking title
+if args.title:
+    book_title = args.title
+    print(f'Title: {args.title}')
+else:
+    book_title = ""
+    print('Default title: we\'ll try to get it from mp3 tag Album')
+
+# Checking artwork
+if args.artwork:
+    # Check if specified file exists
+    if check_file(args.artwork):
+        artwork_filename = args.artwork
+        print(f'Artwork: {args.artwork}')
+    else:
+        print(f'Specified artwork file {args.artwork} does not exist.')
+else:
+    artwork_filename = "cover.jpg"
+    # Check if default artwork file 'cover.jpg exist
+    if check_file(artwork_filename):
+        print(f'Default Artwork file {artwork_filename} is found.')
+    else:
+        # Try to extract file from mp3
+        if(not extract_artwork_from_mp3(artwork_filename)):
+            artwork_filename = None
+
+# Checking output file name
+if args.output:
+    output_file_name = args.output
+    print(f'Output file name: {args.output}.m4b')
+else:
+    output_file_name = "audiobook"
+    print(f'Default output file name: {output_file_name}.m4b')
+
+# Getting files from source folder
+os.chdir(str(folder_path))
+input_audio_files = sorted(str(file) for file in folder_path.glob('*.mp3'))
+
+if len(input_audio_files) == 0:
+    print(f"{os.getcwd()} does not contain mp3 files")
+    sys.exit()
+genre = "Audiobook"
+comment = ""
+chapter_title_tag = "title"
+ffmetadata_file = "FFMETADATA.txt"
 
 
 starttimes=[]
@@ -210,7 +245,7 @@ for i in input_audio_files:
 temp_file = output_file_name + '.m4a'
 os.system('ffmpeg -i "concat:' + bar_separated_filenames[:-1]  + '" -i ' + ffmetadata_file + ' -map_metadata 1 -vn -b:a ' + bitrate + ' \'' + temp_file + '\'')
 
-if check_artwork(artwork_filename):
+if artwork_filename:
     attach_artwork(temp_file, artwork_filename, output_file_name)
 
 print('\a')
