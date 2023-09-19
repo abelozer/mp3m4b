@@ -1,0 +1,4 @@
+[BASIC]
+const-naming-style=snake_case
+variable-naming-style=snake_case
+disable=W0401
