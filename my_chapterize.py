@@ -144,7 +144,7 @@ def parse_agruments():
         artwork_filename
         output_file_name
     """
-    parser = argparse.ArgumentParser(description='Concatenates audio files and adds chapter markers.')
+    parser = argparse.ArgumentParser(description='Concatenates mp3 files and adds chapter markers.')
 
     # Add arguments to the parser
     parser.add_argument('-p',

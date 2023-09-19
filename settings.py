@@ -1,3 +1,6 @@
+"""
+Global variables
+"""
 genre = "Audiobook"
 comment = ""
 chapter_title_tag = "title"
