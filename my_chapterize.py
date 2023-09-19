@@ -138,7 +138,6 @@ def parse_agruments():
     Parses arguments and assignes default values if no arguments provided
     Returns:
         folder_path
-        bitrate
         book_title
         artwork_filename
         output_file_name
@@ -151,11 +150,6 @@ def parse_agruments():
                         type=str,
                         help='Path to folder with mp3 files',
                         default=Path('./'))
-    # parser.add_argument('-b',
-    #                     '--bitrate',
-    #                     type=str,
-    #                     help='Bitrate of audiobook  (96k, 128k etc)',
-    #                     default=None)
     parser.add_argument('-t',
                         '--title',
                         type=str,
@@ -183,10 +177,6 @@ def parse_agruments():
         logger.critical("Path %s does not exist. Exiting", args.path)
         sys.exit()
 
-    # # Bitrate
-    # bitrate = args.bitrate
-    # logger.info(f'Bitrate: {args.bitrate}')
-
     # Audiobook title (tag)
     book_title = args.title
     logger.info('Audiobook title: %s', args.title)
@@ -203,12 +193,6 @@ def parse_agruments():
     output_file_name = args.output
     logger.info('Output file name: %s.m4b', args.output)
 
-    # abook = {
-    #     "folder_path": folder_path,
-    #     "book_title": book_title,
-    #     "artwork_filename": artwork_filename,
-    #     "output_file_name": output_file_name
-    # }
     abook_vars = folder_path, book_title, artwork_filename, output_file_name
     return abook_vars
 
@@ -236,7 +220,6 @@ def build_title_length_list(input_files: list) -> list:
     Returns:
         title_length_list: list of lists [filename, chapter_title, chapter_length]
     """
-    # Building list with chapters name and length
     title_length_list=[]
     ffprobtime = 0.0 #cummulative start time (nanoseconds)
 
@@ -255,13 +238,11 @@ def main():
     Main function
     """
 
-    #logger.basicConfig(filename='history.log', encoding='utf-8', level=logger.DEBUG)
-
     folder_path, book_title, artwork_filename, output_file_name = parse_agruments()
     input_files = get_file_list(folder_path)
     title_length_list = build_title_length_list(input_files)
 
-    # Getting mp3 file metadata to extract bitrate and book_title
+    # Getting mp3 file metadata to extract bitrate and if not defined earlier
     output = subprocess.run([
         "ffprobe",
         input_files[0],
@@ -324,8 +305,6 @@ def main():
     else:
         if extract_artwork_from_mp3(default_artwork_filename, folder_path, input_files):
             attach_artwork(temp_file, artwork_filename, output_file_name)
-
-    print('\a')
 
 if __name__ == "__main__":
     main()
