@@ -230,7 +230,6 @@ def build_title_length_list(input_files: list) -> list:
         # ffprobtime += get_length_using_ffprobe(Path(audio_file))
         ffprobtime += get_length_using_mutagen(Path(audio_file))
         title_length_list.append([audio_file, chapter_title, str(int(ffprobtime))])
-
     return title_length_list
 
 def main():
