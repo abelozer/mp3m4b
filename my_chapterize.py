@@ -122,9 +122,8 @@ def extract_artwork_from_mp3(artwork_filename: str, folder_path: Path, input_fil
     file_path = os.path.join(folder_path, artwork_filename)
     if os.path.exists(file_path):
         return True
-    else:
-        logger.warning("Unable to extract artwork.")
-        return False
+    logger.warning("Unable to extract artwork.")
+    return False
 
 def attach_artwork(temp_file: str, artwork_filename: str, output_file_name: str) -> None:
     """
