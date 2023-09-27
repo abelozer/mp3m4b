@@ -10,6 +10,7 @@ import argparse
 import subprocess
 import json
 import logging
+from typing import Tuple
 from pathlib import Path
 from tqdm import tqdm
 from mutagen.mp3 import MP3
@@ -66,7 +67,7 @@ def get_length_using_ffprobe(file_path: Path) -> float:
     #1.0001
     return ffprobe_length
 
-def get_chapter_title(file_path: Path, tag: str) -> str:
+def get_chapter_title(file_path: Path[str], tag: str) -> str:
     """
     Get the title of the chapter from the audio file's metadata using ffprobe.
 
@@ -87,18 +88,23 @@ def get_chapter_title(file_path: Path, tag: str) -> str:
         "-show_format"
     ]
     try:
-        output = subprocess.check_output(ffprobe_command)
-        chapter_text_metadata = output.decode('utf-8')
+        with subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE) as proc:
+            output = proc.stdout.read().decode("utf-8")
+
+        chapter_text_metadata = output
         json_metadata = json.loads(chapter_text_metadata)
         format_tags = json_metadata.get("format", {}).get("tags", {})
         chapter_title = format_tags.get(tag, "")
         return chapter_title
+
     except subprocess.CalledProcessError as error:
         logger.error("ffprobe command failed with error: %s", error)
         return ""
+
     except json.JSONDecodeError as error:
         logger.error("Error decoding JSON metadata: %s", error)
         return ""
+
     except KeyError as error:
         logger.error("Tag %s not found in metadata: %s", tag, error)
         return ""
@@ -133,14 +139,14 @@ def attach_artwork(temp_file: str, artwork_filename: str, output_file_name: str)
     os.system(shell_command)
     os.remove(temp_file)
 
-def parse_agruments():
+def parse_agruments() -> Tuple[Path, str, str, str]:
     """
     Parses arguments and assignes default values if no arguments provided
     Returns:
-        folder_path
-        book_title
-        artwork_filename
-        output_file_name
+        folder_path (Path): The path to the folder with MP3 files.
+        book_title (str): The audiobook title (tag).
+        artwork_filename (str): The audiobook cover image filename.
+        output_file_name (str): The output file name without extension.
     """
     parser = argparse.ArgumentParser(description='Concatenates mp3 files and adds chapter markers.')
 
@@ -193,8 +199,8 @@ def parse_agruments():
     output_file_name = args.output
     logger.info('Output file name: %s.m4b', args.output)
 
-    abook_vars = folder_path, book_title, artwork_filename, output_file_name
-    return abook_vars
+    audiobook_variables = folder_path, book_title, artwork_filename, output_file_name
+    return audiobook_variables
 
 def get_file_list(folder_path: Path) -> list:
     """
